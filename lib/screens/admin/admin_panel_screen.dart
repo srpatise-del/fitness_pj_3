@@ -11,7 +11,8 @@ class AdminPanelScreen extends StatefulWidget {
   State<AdminPanelScreen> createState() => _AdminPanelScreenState();
 }
 
-class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerProviderStateMixin {
+class _AdminPanelScreenState extends State<AdminPanelScreen>
+    with SingleTickerProviderStateMixin {
   late final TabController _tabController;
 
   @override
@@ -40,6 +41,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
     String? email,
     String role = 'user',
   }) async {
+    final admin = context.read<AdminProvider>();
     final usernameCtrl = TextEditingController(text: username ?? '');
     final emailCtrl = TextEditingController(text: email ?? '');
     final passCtrl = TextEditingController();
@@ -47,57 +49,79 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
 
     await showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: Text(id == null ? 'เพิ่มผู้ใช้' : 'แก้ไขผู้ใช้'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: usernameCtrl, decoration: const InputDecoration(labelText: 'ชื่อผู้ใช้')),
-            TextField(controller: emailCtrl, decoration: const InputDecoration(labelText: 'อีเมล')),
-            if (id == null)
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => AlertDialog(
+          title: Text(id == null ? 'เพิ่มผู้ใช้' : 'แก้ไขผู้ใช้'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
               TextField(
-                controller: passCtrl,
-                decoration: const InputDecoration(labelText: 'รหัสผ่าน'),
-                obscureText: true,
+                  controller: usernameCtrl,
+                  decoration: const InputDecoration(labelText: 'ชื่อผู้ใช้')),
+              TextField(
+                  controller: emailCtrl,
+                  decoration: const InputDecoration(labelText: 'อีเมล')),
+              if (id == null)
+                TextField(
+                  controller: passCtrl,
+                  decoration: const InputDecoration(labelText: 'รหัสผ่าน'),
+                  obscureText: true,
+                ),
+              DropdownButtonFormField<String>(
+                value: currentRole,
+                items: const [
+                  DropdownMenuItem(value: 'user', child: Text('user')),
+                  DropdownMenuItem(value: 'admin', child: Text('admin')),
+                ],
+                onChanged: (v) {
+                  setState(() => currentRole = v ?? 'user');
+                },
+                decoration: const InputDecoration(labelText: 'Role'),
               ),
-            DropdownButtonFormField<String>(
-              initialValue: currentRole,
-              items: const [
-                DropdownMenuItem(value: 'user', child: Text('user')),
-                DropdownMenuItem(value: 'admin', child: Text('admin')),
-              ],
-              onChanged: (v) => currentRole = v ?? 'user',
-              decoration: const InputDecoration(labelText: 'Role'),
+            ],
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('ยกเลิก')),
+            ElevatedButton(
+              onPressed: () async {
+                // Add error handling for user operations
+                try {
+                  if (id == null) {
+                    await admin.addUser(
+                      username: usernameCtrl.text.trim(),
+                      email: emailCtrl.text.trim(),
+                      password: passCtrl.text.trim(),
+                      role: currentRole,
+                    );
+                  } else {
+                    await admin.updateUser(
+                      id: id,
+                      username: usernameCtrl.text.trim(),
+                      email: emailCtrl.text.trim(),
+                      role: currentRole,
+                    );
+                  }
+                  if (mounted) Navigator.pop(context);
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error: $e')),
+                    );
+                  }
+                }
+              },
+              child: const Text('บันทึก'),
             ),
           ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('ยกเลิก')),
-          ElevatedButton(
-            onPressed: () async {
-              final admin = context.read<AdminProvider>();
-              if (id == null) {
-                await admin.addUser(
-                  username: usernameCtrl.text.trim(),
-                  email: emailCtrl.text.trim(),
-                  password: passCtrl.text.trim(),
-                  role: currentRole,
-                );
-              } else {
-                await admin.updateUser(
-                  id: id,
-                  username: usernameCtrl.text.trim(),
-                  email: emailCtrl.text.trim(),
-                  role: currentRole,
-                );
-              }
-              if (mounted) Navigator.pop(context);
-            },
-            child: const Text('บันทึก'),
-          ),
-        ],
       ),
     );
+    // Dispose controllers after the dialog is dismissed
+    usernameCtrl.dispose();
+    emailCtrl.dispose();
+    passCtrl.dispose();
   }
 
   Future<void> _showWorkoutTypeDialog({int? id, String? name}) async {
@@ -111,22 +135,34 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
           decoration: const InputDecoration(labelText: 'ชื่อประเภท'),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('ยกเลิก')),
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('ยกเลิก')),
           ElevatedButton(
             onPressed: () async {
-              final admin = context.read<AdminProvider>();
-              if (id == null) {
-                await admin.addWorkoutType(ctrl.text.trim());
-              } else {
-                await admin.updateWorkoutType(id, ctrl.text.trim());
+              // Add error handling for workout type operations
+              try {
+                final admin = context.read<AdminProvider>();
+                if (id == null) {
+                  await admin.addWorkoutType(ctrl.text.trim());
+                } else {
+                  await admin.updateWorkoutType(id, ctrl.text.trim());
+                }
+                if (mounted) Navigator.pop(context);
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error: $e')),
+                  );
+                }
               }
-              if (mounted) Navigator.pop(context);
             },
             child: const Text('บันทึก'),
           ),
         ],
       ),
-    );
+    ); // Dispose controller after the dialog is dismissed
+    ctrl.dispose();
   }
 
   @override
@@ -222,7 +258,8 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
                             icon: const Icon(Icons.edit),
                           ),
                           IconButton(
-                            onPressed: () => admin.deleteWorkoutType(type['id'] as int),
+                            onPressed: () =>
+                                admin.deleteWorkoutType(type['id'] as int),
                             icon: const Icon(Icons.delete, color: Colors.red),
                           ),
                         ],

@@ -24,6 +24,27 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAutoLogin();
+    });
+  }
+
+  Future<void> _checkAutoLogin() async {
+    final auth = context.read<AuthProvider>();
+    await auth.restoreSession();
+    if (mounted && auth.user != null) {
+      // โหลดข้อมูลเบื้องต้นก่อนเข้าหน้า Dashboard
+      await context.read<WorkoutProvider>().loadWorkouts(
+        userId: auth.user!.id,
+        token: auth.user!.token ?? '',
+      );
+      Navigator.pushReplacementNamed(context, '/dashboard');
+    }
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     final auth = context.read<AuthProvider>();
@@ -33,9 +54,9 @@ class _LoginScreenState extends State<LoginScreen> {
     if (ok) {
       final user = auth.user!;
       await context.read<WorkoutProvider>().loadWorkouts(
-            userId: user.id,
-            token: user.token ?? '',
-          );
+        userId: user.id,
+        token: user.token ?? '',
+      );
       await NotificationService.instance.scheduleDailyReminder();
       if (mounted) {
         Navigator.pushReplacementNamed(context, '/dashboard');
@@ -63,29 +84,52 @@ class _LoginScreenState extends State<LoginScreen> {
                   key: _formKey,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
+                    
                     children: [
-                      Text('Fitness Tracker App', style: Theme.of(context).textTheme.headlineSmall),
-                      const SizedBox(height: 20),
+                      Column(
+                    children: [
+                      Image.asset(
+                        'assets/images/logo.png',
+                        height: 200,
+                        width: 200
+                      ),
+                      const SizedBox(height: 10),
+                      const Text(
+                        'Fitness Tracker App',
+                        style: TextStyle(fontSize: 20),
+                      ),
+                    ],
+                  ),
                       TextFormField(
                         controller: _emailCtrl,
                         keyboardType: TextInputType.emailAddress,
                         decoration: const InputDecoration(labelText: 'อีเมล'),
-                        validator: (v) => (v == null || !v.contains('@')) ? 'กรอกอีเมลให้ถูกต้อง' : null,
+                        validator: (v) => (v == null || !v.contains('@'))
+                            ? 'กรอกอีเมลให้ถูกต้อง'
+                            : null,
                       ),
                       const SizedBox(height: 12),
                       TextFormField(
                         controller: _passCtrl,
                         obscureText: true,
-                        decoration: const InputDecoration(labelText: 'รหัสผ่าน'),
-                        validator: (v) => (v == null || v.length < 6) ? 'รหัสผ่านอย่างน้อย 6 ตัวอักษร' : null,
+                        decoration: const InputDecoration(
+                          labelText: 'รหัสผ่าน',
+                        ),
+                        validator: (v) => (v == null || v.length < 6)
+                            ? 'รหัสผ่านอย่างน้อย 6 ตัวอักษร'
+                            : null,
                       ),
                       const SizedBox(height: 20),
                       SizedBox(
                         width: double.infinity,
-                        child: ElevatedButton(onPressed: _submit, child: const Text('เข้าสู่ระบบ')),
+                        child: ElevatedButton(
+                          onPressed: _submit,
+                          child: const Text('เข้าสู่ระบบ'),
+                        ),
                       ),
                       TextButton(
-                        onPressed: () => Navigator.pushNamed(context, '/register'),
+                        onPressed: () =>
+                            Navigator.pushNamed(context, '/register'),
                         child: const Text('ยังไม่มีบัญชี? สมัครสมาชิก'),
                       ),
                     ],
@@ -99,4 +143,3 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
-

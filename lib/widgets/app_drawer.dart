@@ -14,9 +14,22 @@ class AppDrawer extends StatelessWidget {
         padding: EdgeInsets.zero,
         children: [
           UserAccountsDrawerHeader(
-            accountName: Text(user?.username ?? '-'),
-            accountEmail: Text(user?.email ?? '-'),
+            currentAccountPicture: CircleAvatar(
+            backgroundColor: Colors.white,
+            child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Image.asset(
+            'assets/images/logo.png',
+            ),
+           ),
           ),
+  accountName: Text(
+    user?.username ?? '-',
+    style: const TextStyle(fontWeight: FontWeight.bold),
+  ),
+
+  accountEmail: Text(user?.email ?? '-'),
+),
           ListTile(
             leading: const Icon(Icons.dashboard),
             title: const Text('Dashboard'),
