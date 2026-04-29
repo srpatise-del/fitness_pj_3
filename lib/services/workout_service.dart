@@ -22,27 +22,30 @@ class WorkoutService {
     }
   }
 
-  Future<void> addWorkout({
-    required Workout workout,
-    required String token,
-  }) async {
-    try {
-      await _api.post(
-        'add_workout.php',
-        token: token,
-        body: {
-          'user_id': workout.userId,
-          'type': workout.type,
-          'duration': workout.duration,
-          'frequency_per_week': workout.frequencyPerWeek,
-          'date': workout.date.toIso8601String(),
-        },
-      );
-    } catch (_) {
-      await _addLocal(workout);
+Future<void> addWorkout({
+  required Workout workout,
+  required String token,
+}) async {
+  try {
+    await _api.post(
+      'add_workout.php',
+      token: token,
+      body: {
+        'user_id': workout.userId,
+        'type': workout.type,
+        'duration': workout.duration,
+        'frequency_per_week': workout.frequencyPerWeek,
+        'date': workout.date.toIso8601String(),
+      },
+    );
+  } catch (e) {
+    if (kIsWeb) {
+      throw Exception("เพิ่มข้อมูลไม่สำเร็จ (Web ไม่มี local DB)");
     }
-  }
 
+    await _addLocal(workout);
+  }
+}
   Future<void> updateWorkout({
     required Workout workout,
     required String token,
@@ -101,40 +104,57 @@ class WorkoutService {
     await db.delete('workout_types', where: 'id = ?', whereArgs: [id]);
   }
 
-  Future<List<Workout>> _fetchLocal(int userId) async {
-    final db = await LocalDbService.instance.database;
-    final rows = await db.query('workouts', where: 'user_id = ?', whereArgs: [userId], orderBy: 'date DESC');
-    return rows.map((e) => Workout.fromJson(e)).toList();
-  }
+Future<List<Workout>> _fetchLocal(int userId) async {
+  if (kIsWeb) return []; // 👈 กัน Web
 
-  Future<void> _addLocal(Workout workout) async {
-    final db = await LocalDbService.instance.database;
-    await db.insert('workouts', {
-      'user_id': workout.userId,
+  final db = await LocalDbService.instance.database;
+  final rows = await db.query(
+    'workouts',
+    where: 'user_id = ?',
+    whereArgs: [userId],
+    orderBy: 'date DESC',
+  );
+  return rows.map((e) => Workout.fromJson(e)).toList();
+}
+
+Future<void> _addLocal(Workout workout) async {
+  if (kIsWeb) return; // 👈 กัน
+
+  final db = await LocalDbService.instance.database;
+  await db.insert('workouts', {
+    'user_id': workout.userId,
+    'type': workout.type,
+    'duration': workout.duration,
+    'frequency_per_week': workout.frequencyPerWeek,
+    'date': workout.date.toIso8601String(),
+  });
+}
+
+Future<void> _updateLocal(Workout workout) async {
+  if (kIsWeb) return;
+
+  final db = await LocalDbService.instance.database;
+  await db.update(
+    'workouts',
+    {
       'type': workout.type,
       'duration': workout.duration,
       'frequency_per_week': workout.frequencyPerWeek,
       'date': workout.date.toIso8601String(),
-    });
-  }
+    },
+    where: 'id = ?',
+    whereArgs: [workout.id],
+  );
+}
 
-  Future<void> _updateLocal(Workout workout) async {
-    final db = await LocalDbService.instance.database;
-    await db.update(
-      'workouts',
-      {
-        'type': workout.type,
-        'duration': workout.duration,
-        'frequency_per_week': workout.frequencyPerWeek,
-        'date': workout.date.toIso8601String(),
-      },
-      where: 'id = ?',
-      whereArgs: [workout.id],
-    );
-  }
+Future<void> _deleteLocal(int workoutId) async {
+  if (kIsWeb) return;
 
-  Future<void> _deleteLocal(int workoutId) async {
-    final db = await LocalDbService.instance.database;
-    await db.delete('workouts', where: 'id = ?', whereArgs: [workoutId]);
-  }
+  final db = await LocalDbService.instance.database;
+  await db.delete(
+    'workouts',
+    where: 'id = ?',
+    whereArgs: [workoutId],
+  );
+}
 }

@@ -38,19 +38,23 @@ class WorkoutProvider extends ChangeNotifier {
   }
 
   Future<bool> addWorkout(Workout workout, String token) async {
-    _isLoading = true;
-    _error = null;
+  _isLoading = true;
+  _error = null;
+  notifyListeners();
+  try {
+    await _service.addWorkout(workout: workout, token: token);
+
+    // 👇 เพิ่มตรงนี้
+    await loadWorkouts(userId: workout.userId, token: token);
+
+    return true;
+  } catch (e) {
+    _error = e.toString().replaceFirst('Exception: ', '');
+    return false;
+  } finally {
+    _isLoading = false;
     notifyListeners();
-    try {
-      await _service.addWorkout(workout: workout, token: token);
-      return true;
-    } catch (e) {
-      _error = e.toString().replaceFirst('Exception: ', '');
-      return false;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
+  }
   }
 
   Future<bool> updateWorkout(Workout workout, String token) async {
@@ -76,6 +80,7 @@ class WorkoutProvider extends ChangeNotifier {
     try {
       await _service.deleteWorkout(workoutId: workoutId, token: token);
       _workouts.removeWhere((w) => w.id == workoutId);
+      await loadWorkouts(userId: _workouts.first.userId, token: token);
       return true;
     } catch (e) {
       _error = e.toString().replaceFirst('Exception: ', '');
@@ -85,5 +90,22 @@ class WorkoutProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+  Set<int> getWorkoutDaysThisWeek() {
+  final now = DateTime.now();
+  final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+
+  Set<int> activeDays = {};
+
+  for (var w in _workouts) {
+    final date = w.date;
+
+    if (date.isAfter(startOfWeek.subtract(const Duration(days: 1))) &&
+        date.isBefore(startOfWeek.add(const Duration(days: 7)))) {
+      activeDays.add(date.weekday - 1); // MON = 0
+    }
+  }
+
+  return activeDays;
+}
 }
 

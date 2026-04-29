@@ -5,6 +5,7 @@ import 'package:fitness_pj_3/widgets/app_drawer.dart';
 import 'package:fitness_pj_3/widgets/summary_card.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:fitness_pj_3/widgets/weekly_streak_card.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -59,14 +60,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
       body: RefreshIndicator(
         onRefresh: () async {
           if (user != null) {
-            await workoutProvider.loadWorkouts(userId: user.id, token: user.token ?? '');
+            await workoutProvider.loadWorkouts(
+                userId: user.id, token: user.token ?? '');
           }
         },
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
             Text(
-              'สวัสดี ${user?.username ?? ''}',
+              'สวัสดี คุณ ${user?.username ?? ''}',
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
@@ -88,7 +90,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Weekly Summary', style: Theme.of(context).textTheme.titleMedium),
+                    Text('Weekly Summary',
+                        style: Theme.of(context).textTheme.titleMedium),
                     const SizedBox(height: 8),
                     ...summary.weeklySummary.entries.map(
                       (e) => Padding(
@@ -100,6 +103,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
             ),
+            const SizedBox(height: 16),
+
+            workoutProvider.isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : WeeklyStreakCard(
+                activeDays: workoutProvider.getWorkoutDaysThisWeek(),
+      ),
             if (workoutProvider.error != null)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
@@ -114,4 +124,3 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 }
-

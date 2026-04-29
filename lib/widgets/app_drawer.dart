@@ -17,9 +17,11 @@ class AppDrawer extends StatelessWidget {
             currentAccountPicture: CircleAvatar(
             backgroundColor: Colors.white,
             child: Padding(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(10.0),
             child: Image.asset(
             'assets/images/logo.png',
+            height: 75,
+            width: 75,
             ),
            ),
           ),

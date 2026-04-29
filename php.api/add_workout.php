@@ -38,7 +38,7 @@ try {
     $type = trim((string)($input["type"] ?? ""));
     $duration = (int)($input["duration"] ?? 0);
     $frequency = (int)($input["frequency_per_week"] ?? 0);
-    $date = trim((string)($input["date"] ?? ""));
+    date("Y-m-d H:i:s", strtotime($date))
 
     if ($userId <= 0 || $type === "" || $duration <= 0 || $frequency <= 0 || $date === "") {
         http_response_code(400);
@@ -55,7 +55,7 @@ try {
         ":type" => $type,
         ":duration" => $duration,
         ":frequency_per_week" => $frequency,
-        ":date" => date("Y-m-d H:i:s", strtotime($date))
+        ":date" => str_replace("T", " ", substr($date, 0, 19))
     ]);
 
     echo json_encode([
@@ -64,6 +64,9 @@ try {
     ]);
 } catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode(["message" => "Server error", "error" => $e->getMessage()]);
+    echo json_encode([
+  "message" => "Server error",
+  "error" => $e->getMessage()
+]);
 }
 
